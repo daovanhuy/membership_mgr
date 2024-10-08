@@ -55,7 +55,7 @@ function createTestUsers() {
 
   userStmt.finalize();
   feeStmt.finalize();
-
   console.log('50 test users with fees have been added to the database.');
   db.close();
+  });
 }
