@@ -11,8 +11,11 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
 });
 
 function createTestUsers() {
-  const stmt = db.prepare(`INSERT INTO users (name, birthDate, address, idNumber, phone, email, workUnit, position, issueDate, joinDate) 
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  const userStmt = db.prepare(`INSERT INTO users (name, birthDate, address, idNumber, phone, email, workUnit, position, issueDate, joinDate) 
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+
+  const feeStmt = db.prepare(`INSERT INTO fees (userId, amount, lastPaymentDate, status, dueDate)
+                              VALUES (?, ?, ?, ?, ?)`);
 
   for (let i = 0; i < 50; i++) {
     const user = {
@@ -28,15 +31,31 @@ function createTestUsers() {
       joinDate: faker.date.past().toISOString().split('T')[0],
     };
 
-    stmt.run(Object.values(user), (err) => {
+    userStmt.run(Object.values(user), function(err) {
       if (err) {
         console.error('Error inserting test user:', err);
+      } else {
+        const userId = this.lastID;
+        const fee = {
+          userId: userId,
+          amount: faker.number.float({ min: 50, max: 500, precision: 0.01 }),
+          lastPaymentDate: faker.date.past().toISOString().split('T')[0],
+          status: faker.helpers.arrayElement(['Paid', 'Pending', 'Overdue']),
+          dueDate: faker.date.future().toISOString().split('T')[0],
+        };
+
+        feeStmt.run(Object.values(fee), (err) => {
+          if (err) {
+            console.error('Error inserting test fee:', err);
+          }
+        });
       }
     });
   }
 
-  stmt.finalize();
+  userStmt.finalize();
+  feeStmt.finalize();
 
-  console.log('50 test users have been added to the database.');
+  console.log('50 test users with fees have been added to the database.');
   db.close();
 }
